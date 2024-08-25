@@ -1,0 +1,4 @@
+nubit-server
+.vscode
+*.txt
+cmd/config.json

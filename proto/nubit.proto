@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+option go_package = "github.com/RiemaLabs/nuport-offchain/proto";
+
+
+package generalda;
+
+// The greeting service definition.
+service GeneralDA {
+
+  rpc Store (StoreRequest) returns (StoreReply) {}
+
+  rpc Read (Receipt) returns (ReadReply) {}
+
+  rpc GetProof(Receipt)  returns (ProofReply) {}
+
+  rpc Verify(VerifyRequest) returns (VerifyReply) {}
+}
+
+// The request message containing the user's name.
+message StoreRequest {
+  bytes data = 1;
+}
+
+message StoreReply {
+  bytes receipt = 1;
+}
+
+message Receipt {
+  bytes data = 1;
+}
+
+// The response message containing the greetings
+message ReadReply {
+  bytes result = 1;
+}
+
+message ProofReply {
+  bytes proof = 1;
+}
+
+message VerifyRequest {
+  bytes proof = 1;
+}
+
+message VerifyReply {
+  bool is = 1;
+}

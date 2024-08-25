@@ -1,0 +1,16 @@
+{
+    "rpc-port": 9876,
+    "nubit": {  
+        "gas-price": 0.01,
+        "gas-multiplier": 1.01,
+        "rpc": "http://localhost:26658",
+        "auth-token": "token", 
+        "namespace-id": "12344321",
+        "validator-config": {
+            "tendermint-rpc":"http://localhost:26657",
+            "eth-rpc": ${ETH_RPC},
+            "nuport":"0x3101F6BB7f65c5BfA973391E6A4E4eaC42ea91fA",
+            "verify": "0x031dDB92361BbC28Cd7Be3a6F102c0F0Db230aE3"
+        }
+    }
+}
