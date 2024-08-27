@@ -118,13 +118,8 @@ func NewNubitDA(cfg *DAConfig, ethClient *ethclient.Client) (*NubitDA, error) {
 		log.Error("Invalid Namespace ID", "namespace", cfg.NamespaceId)
 		return nil, errors.New("namespace id cannot be blank")
 	}
-	nsBytes, err := hex.DecodeString(cfg.NamespaceId)
-	if err != nil {
-		log.Error("Could not decode namespace hex string", "err", err)
-		return nil, err
-	}
 
-	namespace, err := nodeshare.NewBlobNamespaceV0(nsBytes)
+	namespace, err := nodeshare.NewBlobNamespaceV0([]byte(cfg.NamespaceId))
 	if err != nil {
 		log.Error("Invalid namespace ID", "err", err)
 		return nil, err
@@ -261,9 +256,6 @@ func (c *NubitDA) Store(ctx context.Context, message []byte) ([]byte, error) {
 		log.Warn("Error retrieving proof", "err", err)
 		return nil, err
 	}
-
-	dd, _ := json.Marshal(proofs)
-	fmt.Println(string(dd))
 
 	proofRetries := 0
 	for proofs == nil {
@@ -593,9 +585,6 @@ func (c *NubitDA) GetProof(ctx context.Context, msg []byte) ([]byte, error) {
 		log.Warn("Unable to retrieve latest block from nuport contract", "err", err)
 		return nil, err
 	}
-
-	fmt.Printf("Blob Pointer Height: %v\n", blobPointer.BlockHeight)
-	fmt.Printf("Latest nuport Height: %v\n", latestNubitBlock)
 
 	var backwards bool
 	if blobPointer.BlockHeight < latestNubitBlock {

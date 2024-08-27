@@ -22,7 +22,7 @@ func main() {
 func startup() error {
 	cfg := config.NewConfig()
 
-	glogger := log.NewGlogHandler(log.JSONHandlerWithLevel(os.Stderr, log.LvlDebug))
+	glogger := log.NewGlogHandler(log.JSONHandlerWithLevel(os.Stderr, log.LvlInfo))
 	glogger.Verbosity(log.LvlDebug)
 	log.SetDefault(log.NewLogger(glogger))
 
