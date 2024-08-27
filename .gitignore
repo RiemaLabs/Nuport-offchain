@@ -2,3 +2,4 @@ nubit-server
 .vscode
 *.txt
 cmd/config.json
+config/config.json
