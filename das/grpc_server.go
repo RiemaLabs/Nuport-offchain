@@ -12,6 +12,7 @@ import (
 type NubitDASRPCServer struct {
 	nubitReader NubitReader
 	nubitWriter NubitWriter
+	withProof   WithProof
 	proto.UnimplementedGeneralDAServer
 }
 
@@ -32,8 +33,11 @@ func (s *NubitDASRPCServer) Store(ctx context.Context, in *proto.StoreRequest) (
 	if nil != err {
 		return nil, err
 	}
-
-	return &proto.StoreReply{Receipt: bpBytes}, nil
+	p, err := s.withProof.Proof(ctx, bpBytes)
+	if err != nil {
+		return nil, err
+	}
+	return &proto.StoreReply{Receipt: p}, nil
 }
 
 func (s *NubitDASRPCServer) Read(ctx context.Context, in *proto.Receipt) (*proto.ReadReply, error) {
