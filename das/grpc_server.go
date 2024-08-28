@@ -25,6 +25,7 @@ func NewNubitDASRPCServer(cfg *DAConfig) *NubitDASRPCServer {
 	return &NubitDASRPCServer{
 		nubitReader: da,
 		nubitWriter: da,
+		withProof:   da,
 	}
 }
 
