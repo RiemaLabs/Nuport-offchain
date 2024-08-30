@@ -21,11 +21,11 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/spf13/pflag"
 
 	nodeclient "github.com/RiemaLabs/nubit-node/rpc/rpc/client"
 
 	nuport "github.com/RiemaLabs/nuport-offchain/nuport"
+	"github.com/tendermint/tendermint/crypto/merkle"
 	"github.com/tendermint/tendermint/rpc/client/http"
 )
 
@@ -78,30 +78,16 @@ type NubitDA struct {
 }
 
 type NubitProver struct {
-	Trpc      *http.HTTP
-	EthClient *ethclient.Client
-	Nuport    *nuport.Bindings
-	Verify    *verify.Bindings
+	Trpc          *http.HTTP
+	EthClient     *ethclient.Client
+	Nuport        *nuport.Bindings
+	Verify        *verify.Bindings
+	VerifyAddress common.Address
 }
 
 // NubitMessageHeaderFlag indicates that this data is a Blob Pointer
 // which will be used to retrieve data from Nubit
 const NubitMessageHeaderFlag byte = 0x63
-
-func NubitDAConfigAddOptions(prefix string, f *pflag.FlagSet) {
-	f.Float64(prefix+".gas-price", 0.01, "Gas for retrying Nubit transactions")
-	f.Float64(prefix+".gas-multiplier", 1.01, "Gas multiplier for Nubit transactions")
-	f.String(prefix+".rpc", "", "Rpc endpoint for Nubit-node")
-	f.String(prefix+".namespace-id", "", "Nubit Namespace to post data to")
-	f.String(prefix+".auth-token", "", "Auth token for Nubit Node")
-	f.Bool(prefix+".noop-writer", false, "Noop writer (disable posting to Nubit)")
-	f.String(prefix+".validator-config"+".tendermint-rpc", "", "Tendermint RPC endpoint, only used for validation")
-	f.String(prefix+".validator-config"+".eth-rpc", "", "L1 Websocket connection, only used for validation")
-	f.String(prefix+".validator-config"+".nuport", "", "nuport address, only used for validation")
-	f.String(prefix+".validator-config"+".verify", "", "Verify contract address, only used for validation")
-}
-
-// TODO: Add more logs for errors
 
 func NewNubitDA(cfg *DAConfig, ethClient *ethclient.Client) (*NubitDA, error) {
 	if cfg == nil {
@@ -166,10 +152,11 @@ func NewNubitDA(cfg *DAConfig, ethClient *ethclient.Client) (*NubitDA, error) {
 			Client:    daClient,
 			Namespace: &namespace,
 			Prover: &NubitProver{
-				Trpc:      trpc,
-				EthClient: ethRpc,
-				Nuport:    nuport,
-				Verify:    verifyC,
+				Trpc:          trpc,
+				EthClient:     ethRpc,
+				Nuport:        nuport,
+				Verify:        verifyC,
+				VerifyAddress: common.HexToAddress(cfg.ValidatorConfig.VerifyAddr),
 			},
 		}, nil
 
@@ -666,4 +653,41 @@ func (c *NubitDA) Verify(ctx context.Context, proof []byte) (bool, error) {
 	}
 
 	return result, nil
+}
+
+func (c *NubitDA) Proof(ctx context.Context, msg []byte) ([]byte, error) {
+	var flag byte
+	buf := bytes.NewReader(msg)
+	binary.Read(buf, binary.BigEndian, &flag)
+	if flag != NubitMessageHeaderFlag {
+		nubitValidationFailureCounter.Inc(1)
+		log.Error("Invalid nubit blob pointer header flag", "flag", flag)
+		return nil, fmt.Errorf("invalid msg flag")
+	}
+
+	bpBinary := make([]byte, len(msg)-1)
+	if err := binary.Read(buf, binary.BigEndian, &bpBinary); nil != err {
+		nubitValidationFailureCounter.Inc(1)
+		log.Error("Couldn't read nubit blob pointer", "err", err)
+		return nil, err
+	}
+
+	bp := BlobPointer{}
+	err := bp.UnmarshalBinary(bpBinary)
+	if err != nil {
+		nubitValidationFailureCounter.Inc(1)
+		log.Error("Couldn't unmarshal nubit blob pointer", "err", err)
+		return nil, nil
+	}
+
+	sharesProof, err := c.Prover.Trpc.ProveShares(ctx, bp.BlockHeight, bp.Start, bp.Start+bp.SharesLength)
+	if err != nil {
+		nubitValidationFailureCounter.Inc(1)
+		log.Error("Unable to get ShareProof", "err", err)
+		return nil, err
+	}
+
+	gGroof := converter.Conversion(sharesProof, 0, bp.BlockHeight, bp.DataRoot, merkle.Proof{})
+
+	return c.Prover.Verify.GetEncode(&bind.CallOpts{}, c.Prover.VerifyAddress, gGroof)
 }

@@ -8,6 +8,10 @@ type NubitWriter interface {
 	Store(context.Context, []byte) ([]byte, error)
 }
 
+type WithProof interface {
+	Proof(context.Context, []byte) ([]byte, error)
+}
+
 type ReadResult struct {
 	Message     []byte     `json:"message"`
 	RowRoots    [][]byte   `json:"row_roots"`
