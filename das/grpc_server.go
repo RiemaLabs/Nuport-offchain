@@ -38,7 +38,11 @@ func (s *NubitDASRPCServer) Store(ctx context.Context, in *proto.StoreRequest) (
 	if err != nil {
 		return nil, err
 	}
-	return &proto.StoreReply{Receipt: p}, nil
+	result := make([]byte, len(bpBytes)+len(p))
+	copy(result, bpBytes)
+	copy(result[len(bpBytes):], p)
+	// BlobPointer + Proof
+	return &proto.StoreReply{Receipt: result}, nil
 }
 
 func (s *NubitDASRPCServer) Read(ctx context.Context, in *proto.Receipt) (*proto.ReadReply, error) {
