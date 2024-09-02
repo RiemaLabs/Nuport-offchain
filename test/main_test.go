@@ -43,6 +43,8 @@ func TestMain(t *testing.T) {
 	bpBytes, err := da.Store(context.Background(), []byte("hello world"))
 	require.NoError(t, err)
 
+	require.Equal(t, 89, len(bpBytes))
+
 	var flag byte
 
 	buf := bytes.NewReader(bpBytes)
